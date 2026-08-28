@@ -99,8 +99,18 @@
 
         <div class="settings-box">
           <strong>Role opcjonalne</strong>
-          <label class="toggle-row"><input id="jesterToggle" type="checkbox" /> Jester</label>
-          <label class="toggle-row"><input id="executionerToggle" type="checkbox" /> Executioner</label>
+          <div class="role-setting-row">
+            <label class="toggle-row"><input id="jesterToggle" type="checkbox" /> Jester</label>
+            <label class="chance-input-label" for="jesterChance">Szansa (%)
+              <input id="jesterChance" type="number" min="0" max="100" value="100" />
+            </label>
+          </div>
+          <div class="role-setting-row">
+            <label class="toggle-row"><input id="executionerToggle" type="checkbox" /> Executioner</label>
+            <label class="chance-input-label" for="executionerChance">Szansa (%)
+              <input id="executionerChance" type="number" min="0" max="100" value="100" />
+            </label>
+          </div>
         </div>
 
         <div id="playersList" class="players-list"></div>
