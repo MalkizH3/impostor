@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Amazonki</title>
+    <title>Impostor Online</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -17,34 +17,25 @@
     <div class="bg-orb orb-2"></div>
 
     <button id="instructionBtn" class="instruction-btn">i</button>
+    <button id="gameSettingsBtn" class="instruction-btn hidden">⚙</button>
 
     <section id="instructionModal" class="instruction-modal hidden">
       <div class="instruction-card">
-        <h2>Instrukcja gry Amazonki</h2>
+        <h2>Instrukcja gry Impostor</h2>
 
         <h3>Cel gry</h3>
         <p>
-          Gracze dzielą się na dwie drużyny: <strong>Amazonki</strong> oraz <strong>Grabieżcy</strong>.
+          Wszyscy oprócz Impostora znają tajne hasło. Impostor próbuje wtopić się w grupę i odgadnąć hasło.
         </p>
         <ul>
-          <li>Amazonki wygrywają, jeśli odkryte zostaną wszystkie <strong>pułapki</strong> lub miną <strong>4</strong> rundy.</li>
-          <li>Grabieżcy wygrywają, jeśli odkryte zostaną wszystkie <strong>skarby</strong>.</li>
+          <li>Każdy gracz po kolei podaje skojarzenie, a potem wszyscy głosują na podejrzaną osobę.</li>
+          <li>Impostor może w dowolnym momencie zgadnąć hasło. Wszyscy głosują wtedy, czy odpowiedź jest poprawna.</li>
         </ul>
 
-        <h3>Typy kart</h3>
-        <div class="instr-img-row">
-          <div><img src="images/ukryty.png" /><p>Zakryta</p></div>
-          <div><img src="images/skarb_2.png" /><p>Skarb</p></div>
-          <div><img src="images/pulapka_2.png" /><p>Pułapka</p></div>
-          <div><img src="images/pusty.png" /><p>Pusty</p></div>
-          <div><img src="images/klucz.png" /><p>Klucz</p></div>
-        </div>
-
+        <h3>Role dodatkowe</h3>
+        <p>Host może włączyć Jester, który wygrywa po wygłosowaniu, oraz Executionera, który ma własny cel.</p>
         <h3>Przebieg rozgrywki</h3>
-        <p>Losowy gracz otrzymuje Klucz. Posiadacz klucza wybiera i klika jedną zakrytą kartę u dowolnego innego gracza. Wybrana karta zostaje odkryta dla wszystkich, a gracz, do którego należała ta karta, otrzymuje klucz i wykonuje kolejny ruch.</p>
-
-        <h3>Koniec rundy</h3>
-        <p>Runda kończy się, gdy gracze odkryją tyle kart, ilu jest uczestników w grze. Wtedy nieodkryte karty są zbierane, ponownie tasowane i rozdawane na nowo (Karta klucza zostaje u tego gracza, który ją ostatnio otrzymał). Rozgrywka trwa maksymalnie 4 rundy.</p>
+        <p>Po eliminacji osoby, która nie jest Impostorem, rozpoczyna się kolejna runda bez tej osoby. Gra kończy się po wykryciu Impostora albo wygranej roli dodatkowej.</p>
 
         <div class="button-row">
           <button id="instructionCloseBtn" class="btn primary">Zamknij</button>
@@ -55,9 +46,9 @@
     <main class="app-shell">
       <header class="app-header-centered">
         <p class="eyebrow">Gra dedukcyjna online</p>
-        <h1>Amazonki</h1>
+        <h1>Impostor</h1>
         <p class="subtitle">
-          Przekazuj klucz, odkrywaj karty i oszukuj przeciwników.
+          Podawaj skojarzenia, trop i głosuj na podejrzanego.
         </p>
       </header>
 
@@ -106,11 +97,18 @@
 
         <p id="lobbyInfo" class="muted"></p>
 
+        <div class="settings-box">
+          <strong>Role opcjonalne</strong>
+          <label class="toggle-row"><input id="jesterToggle" type="checkbox" /> Jester</label>
+          <label class="toggle-row"><input id="executionerToggle" type="checkbox" /> Executioner</label>
+        </div>
+
         <div id="playersList" class="players-list"></div>
 
         <div class="button-row">
           <button id="startGameBtn" class="btn primary hidden">Start gry</button>
           <button id="copyCodeBtn" class="btn ghost">Kopiuj kod</button>
+          <button id="leaveLobbyBtn" class="btn ghost">Opuść lobby</button>
         </div>
       </section>
 
@@ -127,21 +125,13 @@
             <h3>Runda</h3>
             <p id="roundValue">-</p>
           </article>
-          <article class="stat-card treasure">
-            <h3>Skarby</h3>
-            <p id="treasureValue">0 / 0</p>
-          </article>
-          <article class="stat-card trap">
-            <h3>Pułapki</h3>
-            <p id="trapValue">0 / 0</p>
-          </article>
           <article class="stat-card">
-            <h3>Amazonki</h3>
-            <p id="amazonRangeValue">-</p>
-          </article>
-          <article class="stat-card">
-            <h3>Klucz</h3>
+            <h3>Twoja rola</h3>
             <p id="keyHolderValue">-</p>
+          </article>
+          <article class="stat-card secret-stat-card">
+            <h3>Tajne hasło</h3>
+            <p id="secretWordValue">-</p>
           </article>
         </div>
 
@@ -149,6 +139,7 @@
 
         <div class="button-row">
           <button id="nextRoundBtn" class="btn primary hidden">Nowa runda</button>
+          <button id="newGameBtn" class="btn primary hidden">Nowa gra</button>
           <button id="endGameBtn" class="btn primary hidden">Koniec</button>
         </div>
 
@@ -172,9 +163,30 @@
         <div class="role-modal-card">
           <h2 id="roleModalTitle">Twoja rola</h2>
           <p id="roleModalText"></p>
+          <div class="role-modal-details">
+            <div class="role-detail-box">
+              <span class="role-detail-label">Twoja rola</span>
+              <strong id="roleModalRole"></strong>
+            </div>
+            <div class="role-detail-box secret-word-box">
+              <span class="role-detail-label">Tajne hasło</span>
+              <strong id="roleModalWord"></strong>
+            </div>
+          </div>
           <div id="roleModalVisual" class="round-modal-visual role-modal-visual"></div>
           <div class="button-row">
             <button id="roleModalOkBtn" class="btn primary">OK</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="gameSettingsModal" class="role-modal hidden" aria-live="polite">
+        <div class="role-modal-card">
+          <h2>Ustawienia gry</h2>
+          <p id="gameSettingsText">Czy na pewno chcesz zakończyć grę? Ta operacja zakończy grę dla wszystkich graczy.</p>
+          <div class="button-row">
+            <button id="gameSettingsConfirmBtn" class="btn danger">Zakończ grę</button>
+            <button id="gameSettingsCancelBtn" class="btn">Anuluj</button>
           </div>
         </div>
       </section>

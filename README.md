@@ -1,38 +1,24 @@
-# Amazonki (GitHub Pages + Firebase)
+# Impostor Online (GitHub Pages + Firebase)
 https://gramywplanszowki.pl/storage/games/1171/files/amazonki-instrukcja.pdf
 
-Prototyp gry online zgodny ze specyfikacją:
-- 3-10 graczy
-- 2 drużyny: Grabieżcy i Amazonki
-- maks. 4 rundy
-- mechanika klucza i losowego odkrywania kart
-- widoczność kart per gracz
-- drużyny losowane z puli ról przy starcie gry
+Gra towarzyska dla 3-10 osób. Wszyscy poza Impostorem znają hasło, podają skojarzenia i głosują na podejrzanego.
 
-## 1. Co jest zrobione
+## 1. Zasady
 
-- Lobby z kodem pokoju (tworzenie/dołączanie)
-- Synchronizacja stanu gry przez Cloud Firestore
-- Rozkład kart zgodny z tabelą dla 3-10 graczy
-- Losowanie drużyn z puli zależnej od liczby graczy
-- Odkrywanie losowej karty wskazanego gracza przy przekazaniu klucza
-- Automatyczne kończenie rund i przetasowanie nieodkrytych kart
-- Warunki zwycięstwa zgodnie z dokumentem
+- Każdy gracz po kolei wpisuje skojarzenie związane z hasłem.
+- Po rundzie aktywni gracze głosują na podejrzaną osobę.
+- Jeśli wyeliminowany nie jest Impostorem, rozpoczyna się kolejna runda bez tej osoby.
+- Impostor może w dowolnym momencie zgłosić odpowiedź. Wszyscy głosują, czy jest poprawna.
+- Host może włączyć Jester (wygrywa po wygłosowaniu) i Executioner (wygrywa po wygłosowaniu celu).
 
-### Pula drużyn (losowana przy starcie)
+### Role
 
-| Gracze | Amazonki | Grabieżcy |
+| Rola | Cel |
 |-------|----------|-----------|
-| 3 | 2 | 2 |
-| 4 | 2 | 3 |
-| 5 | 2 | 3 |
-| 6 | 2 | 4 |
-| 7 | 3 | 5 |
-| 8 | 3 | 6 |
-| 9 | 3 | 6 |
-| 10 | 4 | 7 |
-
-Jeśli pula ról ma więcej kart niż liczba graczy, nadmiarowa rola pozostaje nieużyta.
+| Impostor | Wtopić się i odgadnąć hasło |
+| Gracz | Wykryć Impostora |
+| Jester | Zostać wygłosowanym |
+| Executioner | Doprowadzić do wygłosowania celu |
 
 ## 2. Konfiguracja Firebase
 
@@ -58,6 +44,10 @@ service cloud.firestore {
   }
 }
 ```
+
+Te same reguły są zapisane w pliku `firestore.rules`. W Firebase Console otwórz
+Firestore Database -> Rules, wklej ich zawartość i kliknij Publish. Reguły
+muszą zezwalać zalogowanym anonimowo użytkownikom na dokumenty `rooms/{roomId}`.
 
 To są reguły prototypowe. Do produkcji warto dodać dodatkową walidację pól i ról hosta.
 

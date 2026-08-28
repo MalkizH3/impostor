@@ -277,6 +277,34 @@ select {
   color: var(--muted);
 }
 
+.settings-box {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.9rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(231, 220, 186, 0.2);
+  border-radius: 10px;
+  background: rgba(12, 4, 22, 0.45);
+}
+
+.settings-box strong {
+  color: var(--gold);
+}
+
+.settings-box .btn {
+  width: fit-content;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-row input {
+  width: auto;
+}
+
 .players-list {
   display: grid;
   gap: 0.55rem;
@@ -354,6 +382,10 @@ select {
 
 .stat-card.trap {
   border-color: rgba(215, 106, 87, 0.45);
+}
+
+.secret-stat-card {
+  border-color: rgba(227, 190, 99, 0.55);
 }
 
 .winner-banner {
@@ -649,6 +681,39 @@ button.card {
   margin-top: 1rem;
 }
 
+.role-modal-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(130px, 1fr));
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.role-detail-box {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid rgba(243, 229, 184, 0.3);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.role-detail-label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.secret-word-box {
+  border-color: rgba(227, 190, 99, 0.55);
+}
+
+.secret-hidden {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .round-summary-strip {
   display: flex;
   flex-wrap: wrap;
@@ -766,6 +831,9 @@ body.game-mode .table-players {
 }
 
 @media (max-width: 680px) {
+  .role-modal-details {
+    grid-template-columns: 1fr;
+  }
   .app-shell {
     padding: 0.7rem;
   }
@@ -845,4 +913,27 @@ body.game-mode .table-players {
 .instr-img-row div {
   text-align: center;
   font-size: 0.9rem;
+}
+
+.tag.impostor {
+  color: #ffc1b4;
+}
+
+.tag.jester {
+  color: var(--gold);
+}
+
+.tag.executioner {
+  color: #a9c5ff;
+}
+
+.player-panel.eliminated {
+  opacity: 0.42;
+  filter: grayscale(1);
+  border-style: dashed;
+}
+
+.player-panel.eliminated .btn,
+.player-panel.eliminated input {
+  pointer-events: none;
 }
