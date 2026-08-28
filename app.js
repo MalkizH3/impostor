@@ -77,7 +77,7 @@ async function updateRoom(changes) { await writeRoom({ ...state.room, ...changes
 function render() {
   const room = state.room; els.join.classList.toggle("hidden", Boolean(room)); els.lobby.classList.toggle("hidden", !room || room.status !== "lobby"); els.game.classList.toggle("hidden", !room || room.status === "lobby"); if (!room) return;
   els.roomBadge.textContent = state.roomId || ""; els.players.innerHTML = (room.players || []).map((player) => `<div class="player-row"><strong>${escapeHtml(player.name)}</strong><span class="tag ${player.role || "pending"}">${roleLabel(player.role)}</span></div>`).join(""); const maxRoles = maxExtraRoles(room.players?.length || 0); els.lobbyInfo.textContent = `${room.players?.length || 0} graczy. Host może uruchomić grę od 3 osób. Dodatkowe role: ${maxRoles === 0 ? "od 4 graczy" : maxRoles === 1 ? "maksymalnie 1" : "maksymalnie 2"}.`; els.start.classList.toggle("hidden", !isHost()); els.jester.checked = maxRoles > 0 && Boolean(room.options?.jester); els.executioner.checked = maxRoles > 0 && Boolean(room.options?.executioner); els.jester.disabled = !isHost() || maxRoles === 0; els.executioner.disabled = !isHost() || maxRoles < 2 && Boolean(room.options?.jester);
-  if (room.status === "lobby") return; const me = currentPlayer(); const active = activePlayers(); const submitted = Object.keys(room.associations || {}).length; const turnPlayer = room.players?.find((player) => player.id === room.currentTurnId); els.round.textContent = room.round || 1; els.key.textContent = me ? roleLabel(me.role) : "-"; els.secretWord.textContent = me?.role === "impostor" ? "Ukryte" : room.word || "-"; els.secretWord.classList.toggle("secret-hidden", me?.role === "impostor"); els.badge.textContent = room.status === "finished" ? "Koniec" : "Runda aktywna";
+  if (room.status === "lobby") return; const me = currentPlayer(); const active = activePlayers(); const submitted = Object.keys(room.associations || {}).length; const turnPlayer = room.players?.find((player) => player.id === room.currentTurnId); els.round.textContent = room.round || 1; els.key.textContent = me ? roleDisplay(me, room) : "-"; els.secretWord.textContent = me?.role === "impostor" ? "Ukryte" : room.word || "-"; els.secretWord.classList.toggle("secret-hidden", me?.role === "impostor"); els.badge.textContent = room.status === "finished" ? "Koniec" : "Runda aktywna";
   els.status.textContent = room.winner || room.lastVoteResult || (room.awaitingVote ? "Skojarzenia gotowe. Czas na głosowanie." : `Tura gracza: ${escapeHtml(turnPlayer?.name || "-")}.`); els.winner.classList.toggle("hidden", !room.winner); els.winner.textContent = room.winner || ""; els.next.classList.add("hidden"); els.newGame.classList.toggle("hidden", !isHost() || room.status !== "finished"); els.end.classList.toggle("hidden", !isHost() || room.status === "finished"); els.table.innerHTML = (room.turnOrder || room.players?.map((player) => player.id) || []).map((playerId) => room.players.find((player) => player.id === playerId)).filter(Boolean).map((player) => playerCard(player, me, room)).join(""); bindDynamicControls();
   if (me?.role && !sessionStorage.getItem(`role_${state.roomId}_${me.id}`)) showRole(me, room);
 }
@@ -101,8 +101,7 @@ async function newGame() {
 function showRole(player, room) {
   sessionStorage.setItem(`role_${state.roomId}_${player.id}`, "1");
   const isImpostor = player.role === "impostor";
-  const targetName = room.players.find((item) => item.id === player.targetId)?.name || "brak celu";
-  const roleText = player.role === "executioner" ? `Executioner (${targetName})` : roleLabel(player.role);
+  const roleText = roleDisplay(player, room);
   els.roleTitle.textContent = roleText;
   els.roleRole.textContent = roleText;
   els.roleWord.textContent = isImpostor ? "Ukryte dla Impostora" : room.word;
@@ -113,6 +112,7 @@ function showRole(player, room) {
   els.roleVisual.textContent = "";
   els.roleModal.classList.remove("hidden");
 }
+function roleDisplay(player, room) { return player.role === "executioner" ? `Executioner (${room.players.find((item) => item.id === player.targetId)?.name || "brak celu"})` : roleLabel(player.role); }
 function roleLabel(role) { return ({ impostor: "Impostor", jester: "Jester", executioner: "Executioner", player: "Gracz" }[role] || "oczekuje"); }
 function escapeHtml(value) { return String(value || "").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char])); }
 function toast(message) { els.toast.textContent = message; els.toast.classList.remove("hidden"); setTimeout(() => els.toast.classList.add("hidden"), 2600); }
