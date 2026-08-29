@@ -113,6 +113,12 @@
           </div>
         </div>
 
+        <div class="settings-box">
+          <strong>Źródło hasła</strong>
+          <label class="toggle-row"><input id="wordModeRandom" type="radio" name="wordMode" value="random" checked /> Losuj z listy</label>
+          <label class="toggle-row"><input id="wordModeCustom" type="radio" name="wordMode" value="custom" /> Własne hasło</label>
+        </div>
+
         <div id="playersList" class="players-list"></div>
 
         <div class="button-row">
@@ -186,6 +192,22 @@
           <div id="roleModalVisual" class="round-modal-visual role-modal-visual"></div>
           <div class="button-row">
             <button id="roleModalOkBtn" class="btn primary">OK</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="wordSetupModal" class="role-modal hidden" aria-live="polite">
+        <div class="role-modal-card">
+          <h2>Wpisz hasło</h2>
+          <p id="wordSetupText">Jesteś twórcą hasła. Wpisz jedno słowo dla rundy.</p>
+          <div class="role-modal-details">
+            <div class="role-detail-box">
+              <span class="role-detail-label">Hasło</span>
+              <input id="customWordInput" type="text" maxlength="40" placeholder="np. ..." />
+            </div>
+          </div>
+          <div class="button-row">
+            <button id="customWordSaveBtn" class="btn primary">Zapisz hasło</button>
           </div>
         </div>
       </section>
