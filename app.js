@@ -446,7 +446,7 @@ function render() {
     els.status.textContent =
       me?.id === room.customWordSetterId
         ? "Wpisz hasło dla tej rundy."
-        : `${escapeHtml(customSetter?.name || "Twórca hasła")} wpisuje hasło...`;
+        : `${escapeHtml("Twórca hasła")} wpisuje hasło...`;
   } else {
     els.secretWord.textContent = me?.role === "impostor" ? "Ukryte" : room.word || "-";
     els.secretWord.classList.toggle("secret-hidden", me?.role === "impostor");
