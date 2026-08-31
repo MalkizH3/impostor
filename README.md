@@ -1,5 +1,4 @@
 # Impostor Online (GitHub Pages + Firebase)
-https://gramywplanszowki.pl/storage/games/1171/files/amazonki-instrukcja.pdf
 
 Gra towarzyska dla 3-10 osób. Wszyscy poza Impostorem znają hasło, podają skojarzenia i głosują na podejrzanego.
 
