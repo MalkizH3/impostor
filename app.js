@@ -458,6 +458,23 @@ function render() {
 
   const allActiveVoted = active.length > 0 && Object.keys(room.votes || {}).length >= active.length;
 
+  const skipVoters = Object.entries(room.votes || {})
+    .filter(([, targetId]) => targetId === "skip")
+    .map(([voterId]) => room.players.find((entry) => entry.id === voterId)?.name || "Nieznany");
+
+  const revealVoteResults = Boolean(room.votesRevealed);
+  const visibleSkipVoters = revealVoteResults ? skipVoters : [];
+  const visibleSkipCount = revealVoteResults && room.anonymousVoting === true ? skipVoters.length : 0;
+
+  let skipSummaryHtml = "";
+  if (revealVoteResults && (visibleSkipVoters.length > 0 || visibleSkipCount > 0)) {
+    if (room.anonymousVoting === false && visibleSkipVoters.length) {
+      skipSummaryHtml = `<div class="vote-summary skip-summary"><strong>Pominięcie:</strong> ${escapeHtml(visibleSkipVoters.join(", "))}</div>`;
+    } else if (room.anonymousVoting === true && visibleSkipCount) {
+      skipSummaryHtml = `<div class="vote-summary skip-summary"><strong>Pominięcie:</strong> ${visibleSkipCount} ${visibleSkipCount === 1 ? "głos" : "głosów"}</div>`;
+    }
+  }
+
   els.newGame.classList.toggle("hidden", !isHost() || room.status !== "finished");
   els.end.classList.toggle("hidden", !isHost() || room.status === "finished");
 
@@ -465,7 +482,7 @@ function render() {
     .map((playerId) => room.players.find((player) => player.id === playerId))
     .filter(Boolean)
     .map((player) => playerCard(player, me, room))
-    .join("");
+    .join("") + skipSummaryHtml;
 
   bindDynamicControls();
 
@@ -497,16 +514,10 @@ function playerCard(player, me, room) {
     .filter(([, targetId]) => targetId === player.id)
     .map(([voterId]) => room.players.find((entry) => entry.id === voterId)?.name || "Nieznany");
 
-  const skipVoters = Object.entries(room.votes || {})
-    .filter(([, targetId]) => targetId === "skip")
-    .map(([voterId]) => room.players.find((entry) => entry.id === voterId)?.name || "Nieznany");
-
   const active = activePlayers();
   const revealVoteResults = Boolean(room.votesRevealed);
   const visibleVoteVoters = revealVoteResults ? voteVoters : [];
-  const visibleSkipVoters = revealVoteResults ? skipVoters : [];
   const visibleVoteCount = revealVoteResults && room.anonymousVoting === true ? voteVoters.length : 0;
-  const visibleSkipCount = revealVoteResults && room.anonymousVoting === true ? skipVoters.length : 0;
 
   const statusLabel =
     room.status === "finished"
@@ -536,12 +547,6 @@ function playerCard(player, me, room) {
       : room.anonymousVoting === true && visibleVoteCount
         ? `<div class="vote-summary">Głosów: ${visibleVoteCount}</div>`
         : "";
-  const skipSummary =
-    room.anonymousVoting === false && visibleSkipVoters.length
-      ? `<div class="vote-summary skip-summary">Pominięcie: ${escapeHtml(visibleSkipVoters.join(", "))}</div>`
-      : room.anonymousVoting === true && visibleSkipCount
-        ? `<div class="vote-summary skip-summary">Pominięcie: ${visibleSkipCount}</div>`
-        : "";
 
   return `<article class="player-panel${player.eliminated ? " eliminated" : ""}${hasVoted ? " has-voted" : ""}" data-player-id="${
     player.id
@@ -562,7 +567,7 @@ function playerCard(player, me, room) {
       canVote
         ? `<div class="button-row"><button class="btn vote-button" data-vote="${player.id}">Głosuj na ${escapeHtml(
             player.name
-          )}</button></div>${skipSummary}`
+          )}</button></div>`
         : ""
     }${
       canGuessJester
