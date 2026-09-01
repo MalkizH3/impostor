@@ -989,3 +989,125 @@ body.game-mode .table-players {
 .player-panel.eliminated input {
   pointer-events: none;
 }
+
+/* Impostor Victory Effects */
+@keyframes bgDarken {
+  from {
+    filter: grayscale(0) brightness(1);
+  }
+  to {
+    filter: grayscale(1) brightness(0.35);
+  }
+}
+
+@keyframes bgRestore {
+  from {
+    filter: grayscale(1) brightness(0.35);
+  }
+  to {
+    filter: grayscale(0) brightness(1);
+  }
+}
+
+@keyframes redGlow {
+  from {
+    color: inherit;
+    text-shadow: none;
+  }
+  to {
+    color: #bf0000;
+    text-shadow: 0 0 20px #bf0000, 0 0 40px rgba(191, 0, 0, 0.6);
+  }
+}
+
+@keyframes redBorderGlow {
+  from {
+    border-color: transparent;
+    box-shadow: 0 0 0px rgba(191, 0, 0, 0);
+  }
+  to {
+    border-color: #bf0000;
+    box-shadow: 0 0 25px #bf0000, 0 0 50px rgba(255, 34, 68, 0.4);
+  }
+}
+
+@keyframes redBorderRestore {
+  from {
+    border-color: #bf0000;
+    box-shadow: 0 0 25px #bf0000, 0 0 50px rgba(255, 34, 68, 0.4);
+  }
+  to {
+    border-color: transparent;
+    box-shadow: 0 0 0px rgba(191, 0, 0, 0);
+  }
+}
+
+body.impostor-victory {
+  background: transparent;
+}
+
+body.impostor-victory::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("./images/background.png"),
+    radial-gradient(circle at 85% 15%, rgba(250, 190, 94, 0.2), transparent 35%),
+    radial-gradient(circle at 20% 80%, rgba(12, 4, 22, 0.25), transparent 35%),
+    linear-gradient(140deg, var(--bg) 0%, var(--bg-2) 60%, #07120d 100%);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position: center center, 85% 15%, 20% 80%, 0 0;
+  background-size: cover, 35% 35%, 35% 35%, auto;
+  filter: grayscale(1) brightness(0.35);
+  animation: bgDarken 5s ease-out forwards;
+  z-index: -1;
+  pointer-events: none;
+}
+
+body.impostor-victory.removing::before {
+  animation: bgRestore 1s linear forwards;
+}
+
+body.impostor-victory #gamePanel {
+  border: 3px solid rgba(191, 0, 0, 0);
+  animation: redBorderGlow 5s ease-out forwards;
+}
+
+body.impostor-victory h1 {
+  color: #bf0000;
+  animation: redGlow 5s ease-out forwards;
+}
+
+body.impostor-victory.removing h1 {
+  animation: redGlowRestore 1s linear forwards;
+}
+
+@keyframes redGlowRestore {
+  from {
+    color: #bf0000;
+    text-shadow: 0 0 20px #bf0000, 0 0 40px rgba(191, 0, 0, 0.6);
+  }
+  to {
+    color: inherit;
+    text-shadow: none;
+  }
+}
+
+#gamePanel.removing {
+  animation: redBorderRestore 1s linear forwards;
+}
+
+.player-panel.impostor-victory {
+  filter: saturate(1.5);
+  background: linear-gradient(135deg, rgba(255, 34, 68, 0.25), rgba(255, 102, 102, 0.15));
+  border: 2px solid #bf0000;
+  animation: redBorderGlow 5s ease-out forwards;
+}
+
+.player-panel.impostor-victory.removing {
+  animation: redBorderRestore 1s linear forwards;
+}
+
+.player-panel.impostor-victory .player-panel-head h3 {
+  color: #bf0000;
+  font-weight: 900;
+}

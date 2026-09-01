@@ -478,11 +478,20 @@ function render() {
   els.newGame.classList.toggle("hidden", !isHost() || room.status !== "finished");
   els.end.classList.toggle("hidden", !isHost() || room.status === "finished");
 
+  const impostorWon = room.winner && room.winner.includes("Impostor wygrywa");
+  document.body.classList.toggle("impostor-victory", impostorWon);
+
   els.table.innerHTML = (room.turnOrder || room.players?.map((player) => player.id) || [])
     .map((playerId) => room.players.find((player) => player.id === playerId))
     .filter(Boolean)
-    .map((player) => playerCard(player, me, room))
+    .map((player) => playerCard(player, me, room, impostorWon))
     .join("") + skipSummaryHtml;
+
+  if (impostorWon) {
+    els.table.classList.add("impostor-victory");
+  } else {
+    els.table.classList.remove("impostor-victory");
+  }
 
   bindDynamicControls();
 
@@ -492,7 +501,7 @@ function render() {
   else hideWordSetupModal();
 }
 
-function playerCard(player, me, room) {
+function playerCard(player, me, room, impostorWon = false) {
   const association = room.associations?.[player.id] || "";
   const history = room.associationHistory?.[player.id] || [];
   const canAssociate =
@@ -548,7 +557,7 @@ function playerCard(player, me, room) {
         ? `<div class="vote-summary">Głosów: ${visibleVoteCount}</div>`
         : "";
 
-  return `<article class="player-panel${player.eliminated ? " eliminated" : ""}${hasVoted ? " has-voted" : ""}" data-player-id="${
+  return `<article class="player-panel${player.eliminated ? " eliminated" : ""}${hasVoted ? " has-voted" : ""}${impostorWon && player.role === "impostor" ? " impostor-victory" : ""}" data-player-id="${
     player.id
   }">
     <div class="player-panel-head">
@@ -876,6 +885,21 @@ async function nextRound() {
 
 async function newGame() {
   if (!state.room || !isHost() || state.room.status !== "finished") return;
+
+  // Play reverse animation if impostor victory was active
+  if (document.body.classList.contains("impostor-victory")) {
+    document.body.classList.add("removing");
+    els.game.classList.add("removing");
+    document.querySelectorAll(".player-panel.impostor-victory").forEach((el) => {
+      el.classList.add("removing");
+    });
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    document.body.classList.remove("impostor-victory", "removing");
+    els.game.classList.remove("removing");
+    document.querySelectorAll(".player-panel.impostor-victory.removing").forEach((el) => {
+      el.classList.remove("impostor-victory", "removing");
+    });
+  }
 
   const players = (state.room.players || []).map((player) => ({
     id: player.id,
