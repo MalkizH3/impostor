@@ -13,7 +13,7 @@ const FIREBASE_CONFIG = {
   measurementId: "G-W7567F17H8"
 };
 const LOCAL_PREFIX = "impostor_room_";
-const state = { mode: "firebase", db: null, user: null, roomId: null, room: null, unsub: null, guessDraft: "" };
+const state = { mode: "firebase", db: null, user: null, roomId: null, room: null, unsub: null, guessDraft: "", jesterGuessRequest: null };
 const el = (id) => document.getElementById(id);
 const els = {
   warning: el("configWarning"),
@@ -481,6 +481,13 @@ function playerCard(player, me, room) {
   const canAssociate =
     me?.id === player.id && me.id === room.currentTurnId && !association && !room.winner && !room.awaitingVote;
   const canVote = room.awaitingVote && !me?.eliminated && !room.votes?.[me.id] && !player.eliminated;
+  const canGuessJester =
+    me?.role === "impostor" &&
+    me?.id !== player.id &&
+    !player.eliminated &&
+    room.status !== "lobby" &&
+    room.status !== "finished" &&
+    (room.options?.jesterChance || 0) > 0;
 
   const hasVoted =
     Object.prototype.hasOwnProperty.call(room.votes || {}, player.id) ||
@@ -557,6 +564,10 @@ function playerCard(player, me, room) {
             player.name
           )}</button></div>${skipSummary}`
         : ""
+    }${
+      canGuessJester
+        ? `<div class="button-row"><button class="btn danger guess-jester-btn" data-jester-target="${player.id}">${state.jesterGuessRequest === player.id ? "Czy na pewno?" : "Zgadnij Jestera"}</button></div>`
+        : ""
     }</article>`;
 }
 
@@ -566,6 +577,9 @@ function bindDynamicControls() {
   );
   document.querySelectorAll("[data-vote]").forEach((button) =>
     button.addEventListener("click", () => castVote(button.dataset.vote))
+  );
+  document.querySelectorAll(".guess-jester-btn").forEach((button) =>
+    button.addEventListener("click", () => handleJesterGuessClick(button.dataset.jesterTarget))
   );
 
   const skipButton = document.getElementById("skipVoteBtn");
@@ -685,6 +699,52 @@ async function submitGuess() {
   }
 
   await updateRoom({ guess: value, guessVotes: {}, awaitingGuessVote: true });
+}
+
+function handleJesterGuessClick(targetId) {
+  if (state.jesterGuessRequest === targetId) {
+    guessJester(targetId);
+    state.jesterGuessRequest = null;
+  } else {
+    state.jesterGuessRequest = targetId;
+    render();
+    setTimeout(() => {
+      if (state.jesterGuessRequest === targetId) {
+        state.jesterGuessRequest = null;
+        render();
+      }
+    }, 3000);
+  }
+}
+
+async function guessJester(targetId) {
+  const guesser = currentPlayer();
+  if (!guesser || guesser.role !== "impostor") return toast("Tylko impostor może zgadywać jestera.");
+  
+  const target = state.room.players.find((player) => player.id === targetId);
+  if (!target || target.eliminated) return toast("Cel nie istnieje lub został wyeliminowany.");
+  
+  const targetWasJester = target.role === "jester";
+  
+  if (targetWasJester) {
+    // Correct guess: eliminate jester, game continues
+    const updates = {
+      players: state.room.players.map((player) =>
+        player.id === targetId ? { ...player, eliminated: true } : player
+      )
+    };
+    await updateRoom(updates);
+  } else {
+    // Wrong guess: eliminate impostor, crewmates win
+    const updates = {
+      status: "finished",
+      players: state.room.players.map((player) =>
+        player.id === guesser.id ? { ...player, eliminated: true } : player
+      ),
+      winner: "Impostor zgadł źle. Crewmate'ci wygrywają."
+    };
+    await updateRoom(updates);
+  }
 }
 
 async function castGuessVote(agree) {
