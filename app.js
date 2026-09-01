@@ -13,7 +13,7 @@ const FIREBASE_CONFIG = {
   measurementId: "G-W7567F17H8"
 };
 const LOCAL_PREFIX = "impostor_room_";
-const state = { mode: "firebase", db: null, user: null, roomId: null, room: null, unsub: null };
+const state = { mode: "firebase", db: null, user: null, roomId: null, room: null, unsub: null, guessDraft: "" };
 const el = (id) => document.getElementById(id);
 const els = {
   warning: el("configWarning"),
@@ -409,18 +409,12 @@ function render() {
   els.anonymousVoteToggle.checked = room.anonymousVoting !== false;
   els.anonymousVoteToggle.disabled = !isHost();
 
-  // przy anonimowym głosowaniu przycisk „Dalej” zawsze ukryty
-  // przy anonimowym głosowaniu ukryty, przy jawnym — zależnie od stanu gry
-  if (room.anonymousVoting === true) {
-   els.next.classList.add("hidden");
-  } else {
-    const canRevealVoteResults =
-      room.votesRevealed === true &&
-      room.status !== "finished" &&
-      isHost();
+  const canRevealVoteResults =
+    room.votesRevealed === true &&
+    room.status !== "finished" &&
+    isHost();
 
-    els.next.classList.toggle("hidden", !canRevealVoteResults);
-} 
+  els.next.classList.toggle("hidden", !canRevealVoteResults);
 
 
   if (room.status === "lobby") return;
@@ -448,8 +442,9 @@ function render() {
         ? "Wpisz hasło dla tej rundy."
         : `${escapeHtml("Twórca hasła")} wpisuje hasło...`;
   } else {
-    els.secretWord.textContent = me?.role === "impostor" ? "Ukryte" : room.word || "-";
-    els.secretWord.classList.toggle("secret-hidden", me?.role === "impostor");
+    const showWordToImpostor = me?.role === "impostor" && room.status === "finished";
+    els.secretWord.textContent = showWordToImpostor ? room.word || "-" : me?.role === "impostor" ? "Ukryte" : room.word || "-";
+    els.secretWord.classList.toggle("secret-hidden", me?.role === "impostor" && room.status !== "finished");
     els.badge.textContent = room.status === "finished" ? "Koniec" : "Runda aktywna";
     const authorLine =
       room.wordMode === "custom" && customWordAuthor ? `Autor hasła: ${escapeHtml(customWordAuthor)}.` : "";
@@ -462,7 +457,6 @@ function render() {
   }
 
   const allActiveVoted = active.length > 0 && Object.keys(room.votes || {}).length >= active.length;
-  const canRevealVoteResults = room.anonymousVoting === false && Boolean(room.votesRevealed);
 
   els.newGame.classList.toggle("hidden", !isHost() || room.status !== "finished");
   els.end.classList.toggle("hidden", !isHost() || room.status === "finished");
@@ -501,9 +495,11 @@ function playerCard(player, me, room) {
     .map(([voterId]) => room.players.find((entry) => entry.id === voterId)?.name || "Nieznany");
 
   const active = activePlayers();
-  const revealVoteResults = room.anonymousVoting === false && Boolean(room.votesRevealed);
+  const revealVoteResults = Boolean(room.votesRevealed);
   const visibleVoteVoters = revealVoteResults ? voteVoters : [];
   const visibleSkipVoters = revealVoteResults ? skipVoters : [];
+  const visibleVoteCount = revealVoteResults && room.anonymousVoting === true ? voteVoters.length : 0;
+  const visibleSkipCount = revealVoteResults && room.anonymousVoting === true ? skipVoters.length : 0;
 
   const statusLabel =
     room.status === "finished"
@@ -530,11 +526,15 @@ function playerCard(player, me, room) {
   const voteNames =
     room.anonymousVoting === false && visibleVoteVoters.length
       ? `<div class="vote-summary">Głosowali: ${escapeHtml(visibleVoteVoters.join(", "))}</div>`
-      : "";
+      : room.anonymousVoting === true && visibleVoteCount
+        ? `<div class="vote-summary">Głosów: ${visibleVoteCount}</div>`
+        : "";
   const skipSummary =
     room.anonymousVoting === false && visibleSkipVoters.length
       ? `<div class="vote-summary skip-summary">Pominięcie: ${escapeHtml(visibleSkipVoters.join(", "))}</div>`
-      : "";
+      : room.anonymousVoting === true && visibleSkipCount
+        ? `<div class="vote-summary skip-summary">Pominięcie: ${visibleSkipCount}</div>`
+        : "";
 
   return `<article class="player-panel${player.eliminated ? " eliminated" : ""}${hasVoted ? " has-voted" : ""}" data-player-id="${
     player.id
@@ -555,7 +555,7 @@ function playerCard(player, me, room) {
       canVote
         ? `<div class="button-row"><button class="btn vote-button" data-vote="${player.id}">Głosuj na ${escapeHtml(
             player.name
-          )}</button><button class="btn vote-button" data-vote="skip">Pomiń głos</button></div>${skipSummary}`
+          )}</button></div>${skipSummary}`
         : ""
     }</article>`;
 }
@@ -568,13 +568,51 @@ function bindDynamicControls() {
     button.addEventListener("click", () => castVote(button.dataset.vote))
   );
 
-  if (currentPlayer()?.role === "impostor" && !state.room.guess && !state.room.winner) {
-    const panel = document.createElement("div");
-    panel.className = "settings-box";
-    panel.innerHTML =
-      '<input id="guessInput" placeholder="Odpowiedź oszusta"><button id="guessBtn" class="btn danger">Zgaduję hasło</button>';
-    els.table.prepend(panel);
-    el("guessBtn").addEventListener("click", submitGuess);
+  const skipButton = document.getElementById("skipVoteBtn");
+  const me = currentPlayer();
+  const canSkipVote =
+    state.room?.awaitingVote &&
+    !me?.eliminated &&
+    !state.room.votes?.[me?.id] &&
+    !state.room?.winner;
+
+  if (canSkipVote) {
+    if (!skipButton) {
+      const panel = document.createElement("div");
+      panel.className = "settings-box";
+      panel.innerHTML = '<button id="skipVoteBtn" class="btn danger">Pomiń głos</button>';
+      els.table.appendChild(panel);
+      document.getElementById("skipVoteBtn").addEventListener("click", () => castVote("skip"));
+    }
+  } else if (skipButton) {
+    skipButton.closest(".settings-box")?.remove();
+  }
+
+  const guessField = document.getElementById("guessInput");
+  const canGuessWord =
+    currentPlayer()?.role === "impostor" && !state.room.guess && !state.room.winner && !!state.room.word;
+
+  if (canGuessWord) {
+    if (!guessField) {
+      const panel = document.createElement("div");
+      panel.className = "settings-box";
+      panel.innerHTML =
+        '<input id="guessInput" placeholder="Odpowiedź oszusta"><button id="guessBtn" class="btn danger">Zgaduję hasło</button>';
+      const input = panel.querySelector("input");
+      input.value = state.guessDraft || "";
+      input.addEventListener("input", (event) => {
+        state.guessDraft = event.target.value;
+      });
+      els.table.prepend(panel);
+      el("guessBtn").addEventListener("click", submitGuess);
+    } else {
+      guessField.value = state.guessDraft || "";
+      guessField.oninput = (event) => {
+        state.guessDraft = event.target.value;
+      };
+    }
+  } else if (guessField) {
+    guessField.closest(".settings-box")?.remove();
   }
 
   const voter = currentPlayer();
@@ -626,7 +664,27 @@ async function submitAssociation() {
 
 async function submitGuess() {
   const value = el("guessInput")?.value.trim();
-  if (value) await updateRoom({ guess: value, guessVotes: {}, awaitingGuessVote: true });
+  if (!state.room?.word) return toast("Hasło nie zostało jeszcze ustalone.");
+  if (!value) return toast("Wpisz odpowiedź oszusta.");
+  state.guessDraft = value;
+
+  if (state.room.awaitingVote) {
+    await updateRoom({
+      guess: value,
+      guessVotes: {},
+      awaitingGuessVote: true,
+      votes: {},
+      votesRevealed: false,
+      awaitingVote: false,
+      awaitingNextRound: false,
+      lastVoteResult: null,
+      pendingWinner: null,
+      lastEliminatedId: null
+    });
+    return;
+  }
+
+  await updateRoom({ guess: value, guessVotes: {}, awaitingGuessVote: true });
 }
 
 async function castGuessVote(agree) {
@@ -707,37 +765,12 @@ async function castVote(targetId) {
   await updateRoom({
     votes,
     awaitingVote: false,
+    awaitingNextRound: true,
     lastVoteResult,
     votesRevealed: true,
     lastEliminatedId: eliminatedId,
     pendingWinner: winner
   });
-
-  // Jawne głosowanie — host musi kliknąć „Dalej”
-if (state.room.anonymousVoting === false) {
-  await updateRoom({
-    awaitingNextRound: true
-  });
-}
-
-
-  // AUTO NEXT ROUND when anonymous voting is enabled
-  if (state.room.anonymousVoting === true) {
-    if (winner) {
-      await updateRoom({
-        status: "finished",
-        winner,
-        votes: {},
-        associations: {},
-        guessVotes: {},
-        guess: null,
-        awaitingVote: false,
-        awaitingGuessVote: false
-      });
-    } else {
-      await nextRound();
-    }
-  }
 }
 
 async function nextRound() {
@@ -767,10 +800,10 @@ async function nextRound() {
     updates.winner = state.room.pendingWinner;
   }
 
-  // 🔥 KLUCZOWA POPRAWKA — ustaw pierwszy gracz na nową rundę
-  const active = (updates.players || state.room.players).filter(p => !p.eliminated);
-  const order = state.room.turnOrder || active.map(p => p.id);
+  const active = (updates.players || state.room.players).filter((player) => !player.eliminated);
+  const order = state.room.turnOrder || active.map((player) => player.id);
   updates.currentTurnId = order[0];
+  state.guessDraft = "";
 
   await updateRoom(updates);
 }
@@ -813,13 +846,14 @@ function showRole(player, room) {
   sessionStorage.setItem(`role_${state.roomId}_${player.id}`, "1");
   const isImpostor = player.role === "impostor";
   const roleText = roleDisplay(player, room);
+  const revealFinalWord = room.status === "finished";
 
   els.roleTitle.textContent = roleText;
   els.roleRole.textContent = roleText;
-  els.roleWord.textContent = isImpostor ? "Ukryte dla Impostora" : room.word;
-  els.roleWord.classList.toggle("secret-hidden", isImpostor);
+  els.roleWord.textContent = revealFinalWord || !isImpostor ? room.word : "Ukryte dla Impostora";
+  els.roleWord.classList.toggle("secret-hidden", isImpostor && !revealFinalWord);
 
-  els.roleText.textContent = isImpostor
+  els.roleText.textContent = isImpostor && !revealFinalWord
     ? "Nie znasz tajnego hasła. Słuchaj innych, podaj wiarygodne skojarzenia i spróbuj odgadnąć hasło w dowolnym momencie."
     : `Tajne hasło: ${room.word}`;
 
